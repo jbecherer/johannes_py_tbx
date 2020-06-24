@@ -145,12 +145,46 @@ def text_corner(ax, txt, corner):
     
     return t   # }}}
 
+def shift_axes(ax, dx, dy):
+    """docstring for shift_axes%            
+        this function shifts a given set of axes ax 
+        by dx and dy """
+    if type(ax) == list:  # if more than one axes
+        for a in range(len(ax)):
+            pos = ax[a].get_position()
+            ax[a].set_position([pos.x0 + dx, pos.y0 + dy, pos.width, pos.height])
+    else:
+        pos = ax.get_position()
+        ax.set_position([pos.x0 + dx, pos.y0 + dy, pos.width, pos.height])
+
+
+
+def squeeze_axes():
+    """docstring for squeeze_axes"""
+    pass
+
+def copy_axes():
+    """docstring for copy_axes"""
+    pass
+
+
+
 # Test create_axes()
 fig = plt.figure( figsize = (10, 10), facecolor = (1, 1, 1))
-ax =  create_axes(fig, 3, 1, put_xlab=False, put_ylab=False)
+ax =  create_axes(fig, 3, 2, put_xlab=False, put_ylab=False)
+shift_axes(ax[0], -.03, .03)
+shift_axes(ax[slice(2,-1,2)], -.01, -.03)
 ax[-1].text( 1, 1, str(1), va='top', ha='right')
 t = text_corner(ax[-1], 'corner text', 2)
-t = text_corner(ax[-1], 'corner text', 1)
 t = text_corner(ax[-1], 'corner text', 1245)
+
+abc = 'abcdefghijklmnopqrstuvwxyz'
+for a in range(len(ax)):
+    tabc = text_corner(ax[a], '(' + abc[a] + ')', 7);
+    tabc.set_fontweight('bold')
+    tabc.set_backgroundcolor([1, 1, 1, .5])
+
+
+
 fig.show() 
 
