@@ -159,9 +159,19 @@ def shift_axes(ax, dx, dy):
 
 
 
-def squeeze_axes():
-    """docstring for squeeze_axes"""
-    pass
+def squeeze_axes(ax, Sx, Sy):
+    """docstring for squeeze_axes
+        this function squeezes the given axes 
+        by factors Sx and Sy
+    """
+    if type(ax) == list:  # if more than one axes
+        for a in range(len(ax)):
+            pos = ax[a].get_position()
+            ax[a].set_position([pos.x0, pos.y0, pos.width * Sx , pos.height * Sy])
+    else:
+        pos = ax.get_position()
+        ax.set_position([pos.x0, pos.y0, pos.width * Sx , pos.height * Sy])
+        
 
 def copy_axes():
     """docstring for copy_axes"""
@@ -174,6 +184,7 @@ fig = plt.figure( figsize = (10, 10), facecolor = (1, 1, 1))
 ax =  create_axes(fig, 3, 2, put_xlab=False, put_ylab=False)
 shift_axes(ax[0], -.03, .03)
 shift_axes(ax[slice(2,-1,2)], -.01, -.03)
+squeeze_axes(ax[slice(2,-1,2)], .8, 1.05)
 ax[-1].text( 1, 1, str(1), va='top', ha='right')
 t = text_corner(ax[-1], 'corner text', 2)
 t = text_corner(ax[-1], 'corner text', 1245)
