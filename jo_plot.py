@@ -1,7 +1,10 @@
 import numpy as np
 import matplotlib.pylab as plt
+from matplotlib import cm
+import datetime as dt
+import gsw               # sea water tool box
 
-def create_axes(fig, n_rows, n_colu, put_xlab=False, put_ylab=False): 
+def create_axes(fig, n_rows, n_colu, put_xlab=False, put_ylab=False, linkx=False, linky=False): 
     """ # {{{
     ax = create_axes(fig, n_rows, n_colums, put_xlab = False, put_ylab = False)
         this function generates for a given figure "fig" 
@@ -33,7 +36,23 @@ def create_axes(fig, n_rows, n_colu, put_xlab=False, put_ylab=False):
     ax = [] 
     for i in range(n_rows):
         for j in range(n_colu):
-            ax.append( fig.add_axes([(Fx[0] + (j)*(dx+xw)), (Fy[1] - (i+1)*yw - i*dy ), xw, yw]));  
+            if len(ax) > 0 : # if shared axes is desired
+
+               if linky & linkx : 
+                   ax.append( fig.add_axes([(Fx[0] + (j)*(dx+xw)), (Fy[1] - (i+1)*yw - i*dy ), xw, yw],
+                                           sharex=ax[0], sharey=ax[0]));
+               elif linky :
+                   ax.append( fig.add_axes([(Fx[0] + (j)*(dx+xw)), (Fy[1] - (i+1)*yw - i*dy ), xw, yw],
+                                           sharey=ax[0]))
+               elif linkx :
+                   ax.append( fig.add_axes([(Fx[0] + (j)*(dx+xw)), (Fy[1] - (i+1)*yw - i*dy ), xw, yw],
+                                           sharex=ax[0]))  
+               else:
+                   ax.append( fig.add_axes([(Fx[0] + (j)*(dx+xw)), (Fy[1] - (i+1)*yw - i*dy ), xw, yw]))
+
+            else:
+                ax.append( fig.add_axes([(Fx[0] + (j)*(dx+xw)), (Fy[1] - (i+1)*yw - i*dy ), xw, yw]))  
+
     
             # remove redundant lables
             if not i==(n_rows-1) and not put_xlab:
@@ -45,6 +64,45 @@ def create_axes(fig, n_rows, n_colu, put_xlab=False, put_ylab=False):
     return ax
 
 # }}}
+
+
+def move_legend(ax, lg, dx, dy):
+    # Get the bounding box of the original legend
+    bb = lg.get_bbox_to_anchor().inverse_transformed(ax.transAxes)
+
+    bb.x0 += dx
+    bb.x1 += dx
+    bb.y0 += dy
+    bb.y1 += dy
+    # Change to location of the legend.
+    lg.set_bbox_to_anchor(bb, transform = ax.transAxes)
+
+
+def density_contours4TS(ax):
+    """This function puts lines of constant density 
+    into a given T-S-asxis"""
+
+    Tl = ax.get_ylim()
+    Sl = ax.get_xlim()
+
+    DS = (Sl[1]-Sl[0])/10
+    DT = (Tl[1]-Tl[0])/10 
+    s = np.arange(Sl[0], Sl[1]+DS, DS)
+    t = np.arange(Tl[0], Tl[1]+DT, DT)
+
+    S, T = np.meshgrid( s, t)
+    R = gsw.sigma0(S, T)
+
+    minR = np.min(R)
+    maxR = np.max(R)
+    DR = maxR-minR
+    
+    Rlevels = np.arange( minR, maxR, DR/7)
+
+    conts = ax.contour(S, T, R, levels=Rlevels, colors='.7', Linewidth=1)
+    #ax.clabel(conts, inline=1, fontsize=10, fmt='%3.0f m') 
+
+
 
 def text_corner(ax, txt, corner): 
     """ # {{{ 
@@ -73,11 +131,11 @@ def text_corner(ax, txt, corner):
     elif corner == 0:
         t = ax.text(.5, 1.01, txt, transform=ax.transAxes, ha='center', va= 'bottom')
     elif corner == -1:
-        t = ax.text(.01, 1.01, txt, transform=ax.transAxes, ha='left', va= 'bottom')
+        t = ax.text(-.01, 1.00, txt, transform=ax.transAxes, ha='left', va= 'center')
     elif corner in [-2, 10]:
         t = ax.text(.5, 1.01, txt, transform=ax.transAxes, ha='center', va= 'bottom')
     elif corner == -3:
-        t = ax.text(.99, 1.01, txt, transform=ax.transAxes, ha='left', va= 'bottom')
+        t = ax.text(1.01, 1.0, txt, transform=ax.transAxes, ha='left', va= 'center')
     elif corner == -4:
         t = ax.text(-.01, .5, txt, transform=ax.transAxes, ha='right', va= 'center')
     elif corner == -5:
@@ -85,11 +143,11 @@ def text_corner(ax, txt, corner):
     elif corner == -6:
         t = ax.text(1.01, .5, txt, transform=ax.transAxes, ha='left', va= 'center')
     elif corner == -7:
-        t = ax.text(.01, -.01, txt, transform=ax.transAxes, ha='left', va= 'top')
+        t = ax.text(-.01, -.01, txt, transform=ax.transAxes, ha='right', va= 'center')
     elif corner == -8:
         t = ax.text(.5, -.01, txt, transform=ax.transAxes, ha='center', va= 'top')
     elif corner == -9:
-        t = ax.text(.99, -.01, txt, transform=ax.transAxes, ha='right', va= 'top')
+        t = ax.text(1.01, -.01, txt, transform=ax.transAxes, ha='left', va= 'center')
     elif corner in [12 , 21]:
         t = ax.text(.25, .99, txt, transform=ax.transAxes, ha='center', va= 'top')
     elif corner in [23 , 32]:
@@ -177,25 +235,62 @@ def copy_axes():
     """docstring for copy_axes"""
     pass
 
+def tstamp2yday(t):
+    """ converts time stamp into yday """
+    day1year = dt.datetime(year=dt.datetime.utcfromtimestamp(t[0]).year, month=1, day=1)
+    yday = (t-day1year.timestamp())/3600/24
+    return yday
+
+def mypcolor(ax, x, y, z, cmap=cm.RdYlBu, cl=None, colbar=True, title=None, ylab=None):
+    """ quick pcolor function for a given axis including colorbar and title"""
+
+    if x[0] > 1e9:   # if x is a unix time stemp convert into year days
+        x = tstamp2yday(x)
+
+    if cl:
+        cl = np.asarray(cl)
+        pc = ax.pcolor(x, y, z, cmap=cmap , vmin=cl[0], vmax=cl[1])	
+    else:
+        pc = ax.pcolor(x, y, z, cmap=cmap) # , vmin=0, vmax=1e-2)	
+
+    if colbar:
+        fig = ax.get_figure()
+        axpos = ax.get_position()
+        cax  = fig.add_axes([axpos.x1+.02, axpos.y0+.1*axpos.height, .01, .8*axpos.height])
+        cb = fig.colorbar(pc , extend='both', cax=cax) # ticks=[1,2,3])
+    else:
+        cb = []
+
+    if title:
+        txt = text_corner(ax, title, 1)
+        txt.set_backgroundcolor([1, 1, 1, .5])
+        txt.set_fontsize(12)
+        txt.set_color([0, 0, 0])
+    else:
+        txt = ''
+
+    if ylab:
+        ax.set_ylabel(ylab, fontsize=12)
+
+    return pc, cb, txt
 
 
 # Test create_axes()
-fig = plt.figure( figsize = (10, 10), facecolor = (1, 1, 1))
-ax =  create_axes(fig, 3, 2, put_xlab=False, put_ylab=False)
-shift_axes(ax[0], -.03, .03)
-shift_axes(ax[slice(2,-1,2)], -.01, -.03)
-squeeze_axes(ax[slice(2,-1,2)], .8, 1.05)
-ax[-1].text( 1, 1, str(1), va='top', ha='right')
-t = text_corner(ax[-1], 'corner text', 2)
-t = text_corner(ax[-1], 'corner text', 1245)
+if False :
+    fig = plt.figure( figsize = (10, 10), facecolor = (1, 1, 1))
+    ax =  create_axes(fig, 3, 2, put_xlab=False, put_ylab=False)
+    shift_axes(ax[0], -.03, .03)
+    shift_axes(ax[slice(2,-1,2)], -.01, -.03)
+    squeeze_axes(ax[slice(2,-1,2)], .8, 1.05)
+    ax[-1].text( 1, 1, str(1), va='top', ha='right')
+    t = text_corner(ax[-1], 'corner text', 2)
+    t = text_corner(ax[-1], 'corner text', 1245)
 
-abc = 'abcdefghijklmnopqrstuvwxyz'
-for a in range(len(ax)):
-    tabc = text_corner(ax[a], '(' + abc[a] + ')', 7);
-    tabc.set_fontweight('bold')
-    tabc.set_backgroundcolor([1, 1, 1, .5])
+    abc = 'abcdefghijklmnopqrstuvwxyz'
+    for a in range(len(ax)):
+        tabc = text_corner(ax[a], '(' + abc[a] + ')', 7);
+        tabc.set_fontweight('bold')
+        tabc.set_backgroundcolor([1, 1, 1, .5])
 
-
-
-fig.show() 
+    fig.show() 
 
