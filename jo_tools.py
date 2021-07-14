@@ -3,7 +3,7 @@ import matplotlib.pylab as plt
 from matplotlib import cm
 import os
 import sys
-import datetime as dt
+import datetime as datetime
 import scipy.io
 from scipy import signal
 from importlib import reload
@@ -65,8 +65,72 @@ def movmean(X, n=1, axis=0, maskNAN=False):
 
     return Xout
 
+def movmedian(X, n=1, axis=0, maskNAN=False):
+    """This function generates a moving median ignoring nan along the axis dimension 
+    of X of oder n"""
 
 
+    ndim = X.ndim
+
+    if maskNAN:
+        mnan = np.isnan(X)
+
+    if n==0:
+        return X
+
+    if axis==1: # if flipped dimensions
+        Xout = np.transpose( movmedian( np.transpose(X), n))
+        return Xout
+
+    if n>1: # itteration for higher order average
+        X = movmedian(X, n=n-1)
+
+    if ndim == 2 :
+        xleft  = np.full( (X.shape[0], X.shape[1]), np.nan, dtype='f4')
+        xright = np.full( (X.shape[0], X.shape[1]), np.nan, dtype='f4')
+        xleft[:-1,:] = X[1:,:] 
+        xright[1:,:] = X[:-1,:]
+        Xout = np.nanmedian( np.concatenate( 
+                        (np.tile(X,(1,1,1)), np.tile(xleft,(1,1,1)), np.tile(xright,(1,1,1))),
+                            axis=0), axis=0)
+    else:
+        xleft  = np.full( (X.shape[0], ), np.nan, dtype='f4')
+        xright = np.full( (X.shape[0], ), np.nan, dtype='f4')
+        xleft[:-1] = X[1:] 
+        xright[1:] = X[:-1]
+        Xout = np.nanmedian( np.concatenate( 
+                        (np.tile(X,(1,1)), np.tile(xleft,(1,1)), np.tile(xright,(1,1))),
+                            axis=0), axis=0)
+
+    if maskNAN:
+        Xout[mnan] = np.nan
+
+    return Xout
+
+
+def interpNans(x):
+  """This function interps over nans in signal 
+    OUTPUT: x_new
+  """
+  ii_nan = np.where(np.isnan(x))[0]
+  ii_notnan = np.where(~np.isnan(x))[0]
+  x_new = x.copy()
+  x_new[ii_nan] = np.interp( ii_nan, ii_notnan, x[ii_notnan])
+
+  return x_new
+
+def interpWithNans(xnew, xold, yold):
+  """This function interps despite nans in signal 
+    OUTPUT: ynew
+  """
+  ii_notnan = np.where( ~(np.isnan(xold) | np.isnan(yold)) )[0]
+
+  ynew = np.full( xnew.shape, np.nan, dtype='f8')
+
+  if ii_notnan.size > 1 :
+    ynew = np.interp( xnew, xold[ii_notnan],  yold[ii_notnan])
+
+  return ynew
 
 
 def qbutter(x, coff, btype='low'):  # {{{
@@ -176,3 +240,54 @@ def average_cluster( time, data, maxdt): # {{{
                      N=cluster_N)
 
     return cluster # }}}
+
+
+def ll_dist( lat1, lon1, lat2, lon2 ):
+  """ calculates distance (km) between two points based on the 
+  assumption of a spherical Earth
+  """
+  R = 6373.0
+
+  lat1 = np.radians(lat1)
+  lon1 = np.radians(lon1)
+  lat2 = np.radians(lat2)
+  lon2 = np.radians(lon2)
+
+  dlon = lon2 - lon1
+  dlat = lat2 - lat1
+  a = (np.sin(dlat/2))**2 + np.cos(lat1) * np.cos(lat2) * (np.sin(dlon/2))**2
+  c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1-a))
+  distance = R * c
+
+  return distance
+
+
+def tstamp2yday( tstep ):
+  """ This function converts unix time to year day"""
+  # day of the year
+  day1year = datetime.datetime(year=datetime.datetime.utcfromtimestamp(tstep[1]).year, month=1, day=1, 
+      tzinfo=datetime.timezone.utc)
+  yday = (tstep - day1year.timestamp())/3600/24 + 1
+  
+  return yday
+
+def yday2tstamp( yday, year ):
+  """ converts yday to unix time """
+  day1year = datetime.datetime(year=year, month=1, day=1, tzinfo=datetime.timezone.utc)
+  tstamp = (yday-1)*3600*24 + day1year.timestamp()
+  
+  return tstamp
+
+def tstamp2dtime( tstamp ):
+  """ converts unix time to date time object """
+  
+  dtime = [datetime.datetime.utcfromtimestamp(t) for t in tstamp]
+  
+  return dtime
+
+def yday2dtime( yday, year ):
+  """ converts year day to date time object """
+  tstamp = yday2tstamp( yday, year )
+  dtime  = tstamp2dtime( tstamp )
+  return dtime
+

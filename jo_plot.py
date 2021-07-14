@@ -1,8 +1,9 @@
 import numpy as np
 import matplotlib.pylab as plt
 from matplotlib import cm
-import datetime as dt
+import datetime as datetime
 import gsw               # sea water tool box
+import jo_tools
 
 def create_axes(fig, n_rows, n_colu, put_xlab=False, put_ylab=False, linkx=False, linky=False): 
     """ # {{{
@@ -216,6 +217,19 @@ def shift_axes(ax, dx, dy):
         ax.set_position([pos.x0 + dx, pos.y0 + dy, pos.width, pos.height])
 
 
+def reduce_panelcount(Nx, Ny, dx, dy, pos1):
+  """helper function for squeese axis"""
+  # double check if sum of all gaps is less than one panel width for many plots
+  #import ipdb; ipdb.set_trace() # n:next line, s:step into function, c:continue, l:display position
+  if (Nx-1)*dx > pos1.width:
+    Nx -= 1 
+    dx = (Dx-pos1.width*Nx)/(Nx-1)
+  if (Ny-1)*dy > pos1.height:
+    Ny -= 1 
+    dy = (Dy-pos1.height*Ny)/(Ny-1)
+
+  return Nx, Ny
+
 
 def squeeze_axes(ax, Sx, Sy):
     """docstring for squeeze_axes
@@ -223,9 +237,45 @@ def squeeze_axes(ax, Sx, Sy):
         by factors Sx and Sy
     """
     if type(ax) == list:  # if more than one axes
-        for a in range(len(ax)):
-            pos = ax[a].get_position()
-            ax[a].set_position([pos.x0, pos.y0, pos.width * Sx , pos.height * Sy])
+        # fix aps between plots 
+        pos1 = ax[0].get_position()
+        pos2 = ax[-1].get_position()
+        Dx = pos2.x0+pos2.width - pos1.x0  # total x dim of axis
+        Dy = pos1.y0+pos1.height - pos2.y0  # total y dim of axis
+
+        # number of panels in each dimension 
+        # assuming all plots have the same width
+        Nx = np.round(Dx/pos1.width)
+        Ny = np.round(Dy/pos1.height)
+
+        # gap size between plots
+        if Nx > 1 :
+          dx = (Dx-pos1.width*Nx)/(Nx-1)
+        else:
+          dx = 0
+        if Ny > 1:
+          dy = (Dy-pos1.height*Ny)/(Ny-1)
+        else:
+          dy = 0
+        
+
+        cnt = 1
+        while Nx*Ny != len(ax):
+          Nx,Ny = reduce_panelcount(Nx, Ny, dx, dy, pos1)
+          cnt+=1
+          if cnt>10:  # catch infinit loop
+            break
+
+
+        #import ipdb; ipdb.set_trace() # n:next line, s:step into function, c:continue, l:display position 
+        for i in range(len(ax)):
+            pos = ax[i].get_position()
+            # call necessary off set
+            ngapx = np.round(Nx*(pos.x0+pos.width - pos1.x0)/Dx)-1
+            ngapy = np.round(Ny*(pos.y0+pos.height-pos2.y0)/Dy)-1
+
+            ax[i].set_position([pos.x0-(ngapx*pos.width*(1-Sx)), pos.y0-(ngapy*pos.height*(1-Sy)), pos.width * Sx , pos.height * Sy])
+
     else:
         pos = ax.get_position()
         ax.set_position([pos.x0, pos.y0, pos.width * Sx , pos.height * Sy])
@@ -237,8 +287,7 @@ def copy_axes():
 
 def tstamp2yday(t):
     """ converts time stamp into yday """
-    day1year = dt.datetime(year=dt.datetime.utcfromtimestamp(t[0]).year, month=1, day=1)
-    yday = (t-day1year.timestamp())/3600/24
+    yday = jo_tools.tstamp2yday( t )
     return yday
 
 def mypcolor(ax, x, y, z, cmap=cm.RdYlBu, cl=None, colbar=True, title=None, ylab=None):
