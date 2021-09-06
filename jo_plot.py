@@ -331,6 +331,13 @@ def plot_x_line(ax, val, style='k--') :
   ax.plot(xl, np.array([1,1])*val, style)
   ax.set_xlim(xl)
   
+def plot_y_line(ax, val, style='k--') :
+  """ plot vertical line in ax at value val with style"""
+
+  yl = ax.get_ylim()
+  ax.plot(np.array([1,1])*val, yl , style)
+  ax.set_ylim(yl)
+  
 
 
 # Test create_axes()
