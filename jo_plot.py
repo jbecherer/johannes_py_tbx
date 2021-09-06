@@ -324,6 +324,15 @@ def mypcolor(ax, x, y, z, cmap=cm.RdYlBu, cl=None, colbar=True, title=None, ylab
     return pc, cb, txt
 
 
+def plot_x_line(ax, val, style='k--') :
+  """ plot horizontal line in ax at value val with style"""
+
+  xl = ax.get_xlim()
+  ax.plot(xl, np.array([1,1])*val, style)
+  ax.set_xlim(xl)
+  
+
+
 # Test create_axes()
 if False :
     fig = plt.figure( figsize = (10, 10), facecolor = (1, 1, 1))
