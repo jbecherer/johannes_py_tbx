@@ -339,6 +339,54 @@ def plot_y_line(ax, val, style='k--') :
   ax.set_ylim(yl)
   
 
+def plot_RTS_profile( ax, z, R, T, S ):
+  """ plot density (R) temperature (T) and salinity (S) profiles in common axis
+      with correctly scaled axis"""
+
+  col = plt.get_cmap("tab10")
+
+  # create axis tripplett
+  ax1=[ax]
+  ax1.append(ax.twiny())
+  ax1.append(ax.twiny())
+  # right, left, top, bottom
+  ax1[2].spines['top'].set_position(('outward', 40))
+
+  i=-1
+  i+=1 # density
+  ax1[i].plot( R, z, color=col(i), Linewidth=1, Linestyle='-', Label=r'')
+  ax1[i].xaxis.label.set_color(color=col(i))
+  ax1[i].tick_params(axis='x', colors=col(i))
+  ax1[i].set_xlabel(r'$\langle\sigma\rangle_t$  (kg/m$^3$)', fontsize=12)
+
+  i+=1 # temperature
+  ax1[i].plot( T, z, color=col(i), Linewidth=1, Linestyle='-', Label=r'')
+  ax1[i].xaxis.label.set_color(color=col(i))
+  ax1[i].tick_params(axis='x', colors=col(i))
+  ax1[i].set_xlabel(r'$\langle T \rangle_t$  ($^\circ$C)', fontsize=12)
+
+  i+=1 # salinity
+  ax1[i].plot( S, z, color=col(i), Linewidth=1, Linestyle='-', Label=r'')
+  ax1[i].xaxis.label.set_color(color=col(i))
+  ax1[i].tick_params(axis='x', colors=col(i))
+  ax1[i].set_xlabel(r'$\langle S \rangle_t$  (g/kg)', fontsize=12)
+
+  #---------------set correct lims-----------------
+  rho_lims = ax1[0].get_xlim()
+  T_lims = ax1[1].get_xlim()
+  S_lims = ax1[2].get_xlim()
+  import gsw               # sea water tool box
+  Tcenter =  np.mean(T_lims)
+  Scenter =  np.mean(S_lims)
+  rho0 = 1015
+  alpha = -gsw.alpha( Scenter, Tcenter, 1)
+  T_lims = Tcenter +  np.array([-1,1]) * np.diff(rho_lims)*.5 /alpha/rho0
+  beta = gsw.beta( Scenter, Tcenter, 1)
+  S_lims = Scenter +  np.array([-1,1]) * np.diff(rho_lims)*.5 /beta/rho0
+
+  ax1[1].set_xlim(T_lims)
+  ax1[2].set_xlim(S_lims)
+
 
 # Test create_axes()
 if False :
