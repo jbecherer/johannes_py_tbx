@@ -324,18 +324,18 @@ def mypcolor(ax, x, y, z, cmap=cm.RdYlBu, cl=None, colbar=True, title=None, ylab
     return pc, cb, txt
 
 
-def plot_x_line(ax, val, style='k--') :
+def plot_x_line(ax, val, style='k--', LineWidth=1) :
   """ plot horizontal line in ax at value val with style"""
 
   xl = ax.get_xlim()
-  ax.plot(xl, np.array([1,1])*val, style)
+  ax.plot(xl, np.array([1,1])*val, style, LineWidth=LineWidth)
   ax.set_xlim(xl)
   
-def plot_y_line(ax, val, style='k--') :
+def plot_y_line(ax, val, style='k--', LineWidth=1) :
   """ plot vertical line in ax at value val with style"""
 
   yl = ax.get_ylim()
-  ax.plot(np.array([1,1])*val, yl , style)
+  ax.plot(np.array([1,1])*val, yl , style, LineWidth=LineWidth)
   ax.set_ylim(yl)
   
 
