@@ -324,6 +324,13 @@ def mypcolor(ax, x, y, z, cmap=cm.RdYlBu, cl=None, colbar=True, title=None, ylab
     return pc, cb, txt
 
 
+def mark_period(ax, xl, ec='k', Linewidth=1, fill=False, fc=(1,1,1,.5)):
+  """ plots a rectagular box in plot with height according to axis given """
+  yl = ax.get_ylim()
+  p = plt.Rectangle((xl[0], yl[0]), np.diff(xl), np.diff(yl), edgecolor=ec, fill=fill, Linewidth=Linewidth, facecolor=fc)
+  ax.add_patch(p)
+
+
 def plot_x_line(ax, val, style='k--', LineWidth=1) :
   """ plot horizontal line in ax at value val with style"""
 
@@ -357,7 +364,7 @@ def plot_RTS_profile( ax, z, R, T, S ):
   ax1[i].plot( R, z, color=col(i), Linewidth=1, Linestyle='-', Label=r'')
   ax1[i].xaxis.label.set_color(color=col(i))
   ax1[i].tick_params(axis='x', colors=col(i))
-  ax1[i].set_xlabel(r'$\langle\sigma\rangle_t$  (kg/m$^3$)', fontsize=12)
+  ax1[i].set_xlabel(r'$\langle\rho\rangle_t$  (kg/m$^3$)', fontsize=12)
 
   i+=1 # temperature
   ax1[i].plot( T, z, color=col(i), Linewidth=1, Linestyle='-', Label=r'')
