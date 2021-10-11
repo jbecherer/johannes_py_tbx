@@ -305,9 +305,12 @@ def bin_interp( x, y, xnew):
   ii_nan = np.isnan(ybin_avg)
   ii_notnan = ~np.isnan(ybin_avg)
   ynew = ybin_avg.copy()
-  ynew[ii_nan] = np.interp( xnew[ii_nan], xnew[ii_notnan], ynew[ii_notnan])
+  if  (np.where( ii_nan )[0].size > 0) & (np.where( ii_notnan )[0].size > 0) : 
+    ynew[ii_nan] = np.interp( xnew[ii_nan], xnew[ii_notnan], ynew[ii_notnan])
 
   return ynew
+
+
 
 def binavg( x, y, bins):
   """This function first binaverages x,y in bins
