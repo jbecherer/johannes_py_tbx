@@ -291,3 +291,40 @@ def yday2dtime( yday, year ):
   dtime  = tstamp2dtime( tstamp )
   return dtime
 
+
+def bin_interp( x, y, xnew):
+  """This function first binaverages x,y in xnew
+     and then interpolates over empty bins"""
+
+  # construct bins with xnew as center points
+  bins = x2bins(xnew)
+
+  ybin_avg = binavg( x, y, bins)
+
+  # interp over nans in bins
+  ii_nan = np.isnan(ybin_avg)
+  ii_notnan = ~np.isnan(ybin_avg)
+  ynew = ybin_avg.copy()
+  ynew[ii_nan] = np.interp( xnew[ii_nan], xnew[ii_notnan], ynew[ii_notnan])
+
+  return ynew
+
+def binavg( x, y, bins):
+  """This function first binaverages x,y in bins
+     """
+
+  inds = np.digitize(x, bins)
+  ybin_avg = np.array([ y[inds == i].mean() for i in range(1, len(bins))])
+
+  return ybin_avg
+  
+def x2bins(x):
+  """This function construct bins with x as center point"""
+
+  bins = np.zeros( (x.size+1, ) )
+  bins[0] = x[0] - .5*(x[1]-x[0])
+  bins[-1] = x[-1] + .5*(x[-1]-x[-2])
+  bins[1:-1] = .5*(x[0:-1] + x[1:])
+
+  return bins
+
