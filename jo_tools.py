@@ -331,3 +331,16 @@ def x2bins(x):
 
   return bins
 
+def dict_vars(D):
+  """prints all variable names in a given dictonary D
+  quite usefull when loading complicated structures with mat73.loadmat()"""
+
+  names = []
+  for name, var in D.items() :
+    #print(name)
+    names.append(name)
+
+  return names
+
+  
+
