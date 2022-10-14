@@ -342,5 +342,134 @@ def dict_vars(D):
 
   return names
 
+
   
+def gc_distance(lon, lat, sequential = True, R=6371):
+    """
+    input:
+        lon, lat    geographical coordinates in [degrees], vectors of length m
+        sequential  calculate distance to previous (T) or first (F) array
+                    element, Boolean value
+        R           radius of sphere in [km], default: Earth's radius, scalar
+        
+        
+    returns:
+        gcdist      vector of length m-1
+        
+    """
+    lon = np.array(lon).astype(np.float); lat = np.array(lat).astype(np.float)
+    d2r = np.pi/180.
+    
+    N = len(lon)
+    
+    
+    if sequential:
+        delta_lon = np.abs(np.diff(lon))*d2r
+        delta_lat = np.abs(np.diff(lat))*d2r
+    else:
+        delta_lon = np.abs((lon[1:]-lon[0]))*d2r
+        delta_lat = np.abs((lat[1:]-lat[0]))*d2r
+    
+    lon *= d2r
+    lat *= d2r
+    
+    # Haversine formula
+    gcdist = 2*R*np.arcsin( np.sqrt( np.sin(delta_lat*0.5)**2 +
+                                    np.cos(lat[0:N-1])*np.cos(lat[1:N])*np.sin(delta_lon*0.5)**2))
+        
+    return gcdist
+
+
+def gc_walk(lon, lat, dx, dy, R = 6371):
+    """
+    'Walk' from (lon, lat) to (lon+dx, lat+dy) where dx,dy are in [km] and
+    lon, lat are geographical coordinates. R is Earth's radius in [km] and
+    this function returns the new position in geogr. coordinates.
+    """
+    
+    # lon,lat etc to radians
+    lon = np.array(lon).astype(np.float); lat = np.array(lat).astype(np.float)
+    
+    x,y,z = lonlat2xyz(lon=lon, lat=lat)
+    d2r = np.pi/180.; lon *= d2r; lat *= d2r
+    
+
+    dx_r = dx/R
+    dy_r = dy/R
+    dR   = np.sqrt(dx_r**2 + dy_r**2)
+    
+    if(dR >= np.pi/2):
+        print("method only works for shifts less than pi/2")
+        return(0)
+        
+    dx_3D = np.array([-np.sin(lon), np.cos(lon), 0])
+    dy_3D = np.array([-np.cos(lon) * np.sin(lat), - np.sin(lon)*np.sin(lat), np.cos(lat)])
+
+    
+    lonlat = xyz2lonlat(np.array([x,y,z]) + (dx_r*dx_3D + dy_r*dy_3D) * np.tan(dR)/dR)
+
+    return lonlat
+
+def xyz2lonlat(xyz=None, x=None, y=None, z=None):
+    """
+    Convert Cartesian coordinats x,y,z to longitude and latitude. You can either
+    provide a single vector xyz of length 3 or vectors for each component (x,y,z).
+    """
+    
+    if xyz is not None:
+        xyz = np.array(xyz).astype(np.float)
+        xyz = xyz/np.sqrt(np.sum(xyz**2))
+        x,y,z = xyz[0], xyz[1], xyz[2]
+    
+    else:
+        r = np.sqrt(x**2+y**2+z**2)
+        x = np.array(x).astype(np.float)/r
+        y = np.array(y).astype(np.float)/r
+        z = np.array(z).astype(np.float)/r
+        
+    d2r = np.pi/180.
+    lon = np.arctan2(y,x) / d2r
+    lat = np.arcsin(z) / d2r
+    
+    return lon, lat
+    
+
+def lonlat2xyz(lonlat=None, lon=None, lat=None):
+    """
+    This function converts geographical to Cartesian coordinates.
+    """
+    
+    d2r = np.pi/180
+    
+    if lonlat is not None:
+        lon = lonlat[0]
+        lat = lonlat[1]
+    
+    lon = np.array(lon).astype(np.float)*d2r
+    lat = np.array(lat).astype(np.float)*d2r
+    x = np.cos(lat) * np.cos(lon)
+    y = np.cos(lat) * np.sin(lon)
+    z = np.sin(lat)
+
+    return x, y, z
+
+
+
+
+def gps2latlon(wp):
+  """ converts gps formated coordinates to degrees 
+  """
+  lon = np.sign(wp[0]) * (np.floor( np.abs(wp[0])/100) + ( np.abs(wp[0])%100 )/60 )
+  lat = np.sign(wp[1]) * (np.floor( np.abs(wp[1])/100) + ( np.abs(wp[1])%100 )/60 )
+
+  return lon,lat
+
+def latlon2gps(lon,lat):
+  """ converts  degrees coordinates to gps format 
+  """
+  longps = np.sign(lon) * (np.floor( np.abs( lon) )*100 + (np.abs(lon)%1)*60 )
+  latgps = np.sign(lat) * (np.floor( np.abs( lat) )*100 + (np.abs(lat)%1)*60 )
+
+  wp = (longps, latgps)
+  return wp
 
